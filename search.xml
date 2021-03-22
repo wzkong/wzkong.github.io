@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Tensorflow2_4_1 C++Api Deployment</title>
+    <url>/2021/03/22/Tensorflow2.4.1-C-Api-Deployment/</url>
+    <content><![CDATA[<h2 id><a href="#" class="headerlink" title></a></h2><h2 id="简单介绍"><a href="#简单介绍" class="headerlink" title="简单介绍"></a>简单介绍</h2><p>  作者最近打算在服务器上部署用python训练的tensorflow模型，同时使用C++Api调用这个模型。本篇文章主要是记录如何编译和简单使用tensorflowC++api的动态链接库。</p>
+<h2 id="1-环境"><a href="#1-环境" class="headerlink" title="1.环境"></a>1.环境</h2><p>Ubuntu18.04</p>
+<p>Python3.8.5</p>
+<p>Anaconda3</p>
+<p><strong>tensorflow</strong> 2.4.1（gpu）</p>
+<p><strong>Bazel</strong> 3.1.0</p>
+<p><strong>protobuf</strong> 3.9.2</p>
+<p>cuda 11.0</p>
+<p>cudnn 8.0</p>
+<p>gcc7.5</p>
+<p>nvidia Titan</p>
+<h2 id="2-安装环境"><a href="#2-安装环境" class="headerlink" title="2.安装环境"></a>2.安装环境</h2><h3 id="安装python环境"><a href="#安装python环境" class="headerlink" title="安装python环境"></a>安装python环境</h3><p>使用Anaconda安装，创建了一个py38环境</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">conda create -n py38 python=<span class="number">3.8</span></span><br><span class="line">conda activate py38</span><br></pre></td></tr></table></figure>
+
+<h3 id="Tensorflow"><a href="#Tensorflow" class="headerlink" title="Tensorflow"></a>Tensorflow</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">git clone https:&#x2F;&#x2F;github.com&#x2F;tensorflow&#x2F;tensorflow.git</span><br><span class="line">cd tensorflow</span><br><span class="line">git checkout r2.4</span><br></pre></td></tr></table></figure>
+
+<h3 id="安装protobuf"><a href="#安装protobuf" class="headerlink" title="安装protobuf"></a>安装protobuf</h3><p>源码编译</p>
+<p>Protobuf install:<a href="https://blog.csdn.net/FK2016/article/details/83375048">https://blog.csdn.net/FK2016/article/details/83375048</a></p>
+<p>具体需要的版本可以查看文件<code>tensorflow/workspace.bzl</code>中<code>protobuf</code>的版本，然后进行安装</p>
+<h3 id="安装Bazel"><a href="#安装Bazel" class="headerlink" title="安装Bazel"></a>安装Bazel</h3><p>Bazel install:<a href="https://docs.bazel.build/versions/4.0.0/install-ubuntu.html">https://docs.bazel.build/versions/4.0.0/install-ubuntu.html</a></p>
+<p>我采用的是Using the binary installer的方式，安装的是Bazel3.1.0的版本，可以通过查看<code>tensorflow</code>源码目录下的文件<code>configure.py</code>知道需要的版本</p>
+<h3 id="安装GCC的版本"><a href="#安装GCC的版本" class="headerlink" title="安装GCC的版本"></a>安装GCC的版本</h3><p>这里采用的是ubuntu18.04默认的gcc7.5</p>
+<h2 id="3-编译过程"><a href="#3-编译过程" class="headerlink" title="3.编译过程"></a>3.编译过程</h2><h3 id="项目配置"><a href="#项目配置" class="headerlink" title="项目配置"></a>项目配置</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">cd tensorflow</span><br><span class="line">.&#x2F;configure</span><br></pre></td></tr></table></figure>
+
+<h3 id="执行编译命令"><a href="#执行编译命令" class="headerlink" title="执行编译命令"></a>执行编译命令</h3><p>编译c++开发中的动态链接库</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">bazel build --config=opt --config=cuda   //tensorflow:libtensorflow_cc.so --verbose_failures //tensorflow:install_headers</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-测试"><a href="#4-测试" class="headerlink" title="4.测试"></a>4.测试</h2><h3 id="Python"><a href="#Python" class="headerlink" title="Python"></a>Python</h3><p>使用ipython进行测试，不可在tf源码目录下打开</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">ipython</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> tensorflow <span class="keyword">as</span> tf</span><br><span class="line"></span><br><span class="line">tf.__version__</span><br><span class="line">tf.test.is_gpu_available()</span><br></pre></td></tr></table></figure>
+
+<p>Python测试通过</p>
+<p>训练模型</p>
+<p>​    ……………………………..</p>
+<h3 id="C-测试"><a href="#C-测试" class="headerlink" title="C++测试"></a>C++测试</h3><p>main.cpp</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;tensorflow/cc/client/client_session.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;tensorflow/cc/ops/standard_ops.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&quot;tensorflow/core/framework/tensor.h&quot;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> tensorflow;</span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> tensorflow::ops;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Scope root = Scope::<span class="built_in">NewRootScope</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Matrix A = [3 2; -1 0]</span></span><br><span class="line">    <span class="keyword">auto</span> A = <span class="built_in">Const</span>(root, &#123; &#123;<span class="number">3.f</span>, <span class="number">2.f</span>&#125;, &#123;<span class="number">-1.f</span>, <span class="number">0.f</span>&#125; &#125;);</span><br><span class="line">    <span class="comment">// Vector b = [3 5]</span></span><br><span class="line">    <span class="keyword">auto</span> b = <span class="built_in">Const</span>(root, &#123; &#123;<span class="number">3.f</span>, <span class="number">5.f</span>&#125; &#125;);</span><br><span class="line">    <span class="comment">// v = Ab^T</span></span><br><span class="line">    <span class="keyword">auto</span> v = <span class="built_in">MatMul</span>(root.<span class="built_in">WithOpName</span>(<span class="string">&quot;v&quot;</span>), A, b, MatMul::<span class="built_in">TransposeB</span>(<span class="literal">true</span>));</span><br><span class="line"></span><br><span class="line">    std::vector&lt;Tensor&gt; outputs;</span><br><span class="line">    <span class="function">ClientSession <span class="title">session</span><span class="params">(root)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Run and fetch v</span></span><br><span class="line">    <span class="built_in">TF_CHECK_OK</span>(session.<span class="built_in">Run</span>(&#123;v&#125;, &amp;outputs));</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;tensorflow session run ok&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    <span class="comment">// Expect outputs[0] == [19; -3]</span></span><br><span class="line">    std::cout &lt;&lt; outputs[<span class="number">0</span>].matrix&lt;<span class="keyword">float</span>&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>CMakeLists.txt</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">project(libtf)</span><br><span class="line">cmake_minimum_required(VERSION 3.0)</span><br><span class="line"></span><br><span class="line">add_definitions(-std&#x3D;c++11)</span><br><span class="line"></span><br><span class="line">set(TENSORFLOW_ROOT_DIR &#x2F;home&#x2F;wzkong&#x2F;tensorflow241&#x2F;tensorflow)</span><br><span class="line"></span><br><span class="line">include_directories(</span><br><span class="line">        $&#123;TENSORFLOW_ROOT_DIR&#125;&#x2F;bazel-bin&#x2F;tensorflow&#x2F;include</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">aux_source_directory(.&#x2F; DIR_SRCS)</span><br><span class="line"></span><br><span class="line">link_directories(&#x2F;home&#x2F;wzkong&#x2F;tensorflow241&#x2F;tensorflow&#x2F;bazel-bin&#x2F;tensorflow)</span><br><span class="line"></span><br><span class="line">add_executable(libtf $&#123;DIR_SRCS&#125;)</span><br><span class="line">target_link_libraries(libtf</span><br><span class="line">       tensorflow_cc</span><br><span class="line">        tensorflow_framework</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">target_link_libraries(libtf &#x2F;home&#x2F;wzkong&#x2F;tensorflow241&#x2F;tensorflow&#x2F;bazel-bin&#x2F;tensorflow&#x2F;libtensorflow_cc.so &#x2F;home&#x2F;wzkong&#x2F;tensorflow241&#x2F;tensorflow&#x2F;bazel-bin&#x2F;tensorflow&#x2F;libtensorflow_framework.so.2)</span><br></pre></td></tr></table></figure>
+
+<p>编译运行</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">mkdir build</span><br><span class="line">cd build</span><br><span class="line">cmake ..</span><br><span class="line">make</span><br><span class="line">./libtf</span><br></pre></td></tr></table></figure>
+
+<p>测试通过</p>
+<h3 id="生成的头文件和动态库链接放在gcc默认头文件和库路径"><a href="#生成的头文件和动态库链接放在gcc默认头文件和库路径" class="headerlink" title="生成的头文件和动态库链接放在gcc默认头文件和库路径"></a>生成的头文件和动态库链接放在gcc默认头文件和库路径</h3><p>参考：<a href="https://blog.csdn.net/qq_23599965/article/details/90519756">https://blog.csdn.net/qq_23599965/article/details/90519756</a></p>
+<p>将<code>/tensorflow/bazel-bin/tensorflow</code>下的<code>include</code>中的文件放在<code>/usr/include</code></p>
+<p><img src="/2021/03/22/Tensorflow2.4.1-C-Api-Deployment/image-20210322125026779.png"></p>
+<p>将<code>/tensorflow/bazel-bin/tensorflow</code>下的<code>libtensorflow_framework.so.2</code>和<code>libtensorflow_cc.so</code>放在<code>/usr/lib</code></p>
+<p>或者在<code>~/.zshrc</code>里面添加<code>PATH</code>和<code>LD_LIBRARY_PATH</code>路径</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>Tensorflow2.2.0:<a href="https://xugaoxiang.com/2020/05/22/compile-tensorflow2-with-gpu/">https://xugaoxiang.com/2020/05/22/compile-tensorflow2-with-gpu/</a></p>
+<p>TensorflowOfficial:<a href="https://www.tensorflow.org/install/source">https://www.tensorflow.org/install/source</a></p>
+<p>Bazel install:<a href="https://docs.bazel.build/versions/4.0.0/install-ubuntu.html">https://docs.bazel.build/versions/4.0.0/install-ubuntu.html</a></p>
+<p>Protobuf install:<a href="https://blog.csdn.net/FK2016/article/details/83375048">https://blog.csdn.net/FK2016/article/details/83375048</a></p>
+]]></content>
+      <tags>
+        <tag>C++</tag>
+      </tags>
+  </entry>
+</search>
